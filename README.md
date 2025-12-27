@@ -35,7 +35,7 @@ Paimon.moe の祈願履歴データをローカルで安全に処理し、**UIGF
 
 ### ✔ `rank-override.json` による手動補完の永続化
 
-ユーザーが手で補完した **rank_type / 日本語名 / 英語名** を`rank-override.json` に保存して、次回以降の変換に自動反映します。
+ユーザーが手で補完した **`rank_type` / 日本語名 / 英語名** を`rank-override.json` に保存して、次回以降の変換に自動反映します。
 
 一部 UIGF 準拠のツールでは、 Paimon.moe データに無い `rank_type` が必須となっているケースがあります。  
 これに対応するためにユーザー側で補完し、より確実なデータとしてローカルに保持します。
@@ -115,12 +115,12 @@ python pm2uigf-pipeline.py uigf_v41.json \
 | オプション / Args | 順番 / Number of Args | 必須 / Requirement | 説明 / Description |
 | ---------------- | --------------------- | ------------------ | ------------------ |
 | `None` (指定なし) | 1 | True | 出力 UIGF v4.x ファイルパス |
-| `--paimon` or `--from-v3` | 2 | True | Paimon.moe ローカルデータ JSON <br> もしくは <br> UIGF v3 JSON |
-| `--v3-out` | 3 | False | 途中生成した UIGF v3 JSON の出力先 |
-| `--missing-rank-out` | 4 | True (Conditional) | rank_type 未判別アイテム一覧の出力先<br>`--paimon`指定時のみ必須 |
-| `--export-app` | 5 | False | UIGF v4.1 のプロパティに記載するエクスポートアプリの名前<br>既定値: `PMOE-Local-Converter` |
-| `--export-app-version` | 6 | False | UIGF v4.1 のプロパティに記載するエクスポートアプリのバージョン情報<br>既定値: `1.0.0` |
-| `--target-version` | 7 | False | 出力 UIGF バージョン<br>既定値: `v4.1`<br>※ 現行は`v4.1`のみ |
+| `--paimon` <br> or <br> `--from-v3` | 2 | True | Paimon.moe ローカルデータ JSON <br> もしくは <br> UIGF v3 JSON |
+| `--v3-out` | 3 | False | 途中生成した UIGF v3 JSON の出力先 <br> `--paimon` 指定時のみ指定可 |
+| `--missing-rank-out` | 4 | True (Conditional) | `rank_type` 未判別アイテム一覧の出力先 <br> `--paimon` 指定時のみ必須 |
+| `--export-app` | 5 | False | UIGF v4.1 のプロパティに記載するエクスポートアプリの名前 <br> 既定値: `PMOE-Local-Converter` |
+| `--export-app-version` | 6 | False | UIGF v4.1 のプロパティに記載するエクスポートアプリのバージョン情報 <br> 既定値: `1.0.0` |
+| `--target-version` | 7 | False | 出力 UIGF バージョン <br> 既定値: `v4.1` <br> ※ 現行は`v4.1`のみ |
 
 ## 📦 入力 / Input Files
 
@@ -137,7 +137,7 @@ python pm2uigf-pipeline.py uigf_v41.json \
 | ファイル / File | 説明 / Description |
 | -------------------- | -------------------------- |
 | `uigf_v41.json` | UIGF v4.1 スキーマに準拠した最終 JSON |
-| `missing-rank.json` | rank_type が不明だった項目の一覧 |
+| `missing-rank.json` | `rank_type` が不明だった項目の一覧 |
 
 ---
 
@@ -244,13 +244,9 @@ MIT License
 
 ### 🌐 Data Sources
 
-- Genshin Dictionary
-    <https://genshin-dictionary.com/>
-    <https://dataset.genshin-dictionary.com/words.json>
-- UIGF（Universal Interchangeable Gacha Format）
-    <https://uigf.org/>
-- Paimon.moe
-    <https://paimon.moe/>
+- [Paimon.moe](https://paimon.moe/)
+- [UIGF（Universal Interchangeable Gacha Format）](https://uigf.org/)
+- [Genshin Dictionary](https://genshin-dictionary.com/)
 
 ---
 
