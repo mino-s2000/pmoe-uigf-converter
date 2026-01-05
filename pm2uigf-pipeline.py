@@ -255,7 +255,7 @@ def build_uigf_record(
 def paimon_to_uigf_v3(
     paimon_data: Dict[str, Any],
     export_app: str = "PMOE-Local-Converter",
-    export_app_version: str = "1.0.0",
+    export_app_version: str = "1.0.2",
     rank_override_map: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> Tuple[Dict[str, Any], Dict[str, Dict[str, str]]]:
     """Paimon → UIGF v3"""
@@ -317,7 +317,8 @@ def paimon_to_uigf_v3(
             
             if entry:
                 uigf_list.append(entry)
-            elif not rank_type:
+            
+            if not rank_type:
                 missing_rank[pmoe_id] = {
                     "name_en": item_name_en,
                     "name_jp": item_name_jp,

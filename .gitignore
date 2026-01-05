@@ -207,7 +207,7 @@ marimo/_lsp/
 __marimo__/
 
 # Project-specific ignores
-paimon-moe-local-data.json
-missing-rank.json
-rank-override.json
-uigf-*.json
+*.json
+
+# Antigravity Specific ignores
+docs/
