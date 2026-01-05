@@ -22,17 +22,20 @@ RANK_OVERRIDE_FILE = os.path.join(SCRIPT_DIR, "rank-override.json")
 API_URLS = {
     "weapons_en": "https://raw.githubusercontent.com/MadeBaruna/paimon-moe/main/src/data/weapons/en.json",
     "weapons_ja": "https://raw.githubusercontent.com/MadeBaruna/paimon-moe/main/src/data/weapons/ja.json",
-    "characters_en": "https://raw.githubusercontent.com/MadeBaruna/paimon-moe/main/src/data/characters/en.json",
-    "characters_ja": "https://raw.githubusercontent.com/MadeBaruna/paimon-moe/main/src/data/characters/ja.json",
-    "uigf_dict": "https://api.uigf.org/dict/genshin/en.json",
+    "characters_en": "https://raw.githubusercontent.com/MadeBaruna/paimon-moe/main/src/data/furnishing/en.json",
+    "characters_ja": "https://raw.githubusercontent.com/MadeBaruna/paimon-moe/main/src/data/furnishing/ja.json",
+    "uigf_dict_en": "https://api.uigf.org/dict/genshin/en.json",
+    "uigf_dict_ja": "https://api.uigf.org/dict/genshin/jp.json",
     "genshin_words": "https://dataset.genshin-dictionary.com/words.json",
 }
 
+# まずは英語と日本語に限定
 LANG_MAP = {
-    "ja": "ja-jp", "en": "en-us", "de": "de-de", "es": "es-es",
-    "fr": "fr-fr", "id": "id-id", "it": "it-it", "ko": "ko-kr",
-    "pt": "pt-pt", "ru": "ru-ru", "th": "th-th", "tr": "tr-tr",
-    "vi": "vi-vn", "zh-cn": "zh-cn", "zh-tw": "zh-tw",
+    "ja": "ja-jp", "en": "en-us",
+#    "de": "de-de", "es": "es-es",
+#    "fr": "fr-fr", "id": "id-id", "it": "it-it", "ko": "ko-kr",
+#    "pt": "pt-pt", "ru": "ru-ru", "th": "th-th", "tr": "tr-tr",
+#    "vi": "vi-vn", "zh-cn": "zh-cn", "zh-tw": "zh-tw",
 }
 
 GACHA_BANNER_TYPES = [
