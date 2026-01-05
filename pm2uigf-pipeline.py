@@ -22,17 +22,20 @@ RANK_OVERRIDE_FILE = os.path.join(SCRIPT_DIR, "rank-override.json")
 API_URLS = {
     "weapons_en": "https://raw.githubusercontent.com/MadeBaruna/paimon-moe/main/src/data/weapons/en.json",
     "weapons_ja": "https://raw.githubusercontent.com/MadeBaruna/paimon-moe/main/src/data/weapons/ja.json",
-    "characters_en": "https://raw.githubusercontent.com/MadeBaruna/paimon-moe/main/src/data/characters/en.json",
-    "characters_ja": "https://raw.githubusercontent.com/MadeBaruna/paimon-moe/main/src/data/characters/ja.json",
-    "uigf_dict": "https://api.uigf.org/dict/genshin/en.json",
+    "characters_en": "https://raw.githubusercontent.com/MadeBaruna/paimon-moe/main/src/data/furnishing/en.json",
+    "characters_ja": "https://raw.githubusercontent.com/MadeBaruna/paimon-moe/main/src/data/furnishing/ja.json",
+    "uigf_dict_en": "https://api.uigf.org/dict/genshin/en.json",
+    "uigf_dict_ja": "https://api.uigf.org/dict/genshin/jp.json",
     "genshin_words": "https://dataset.genshin-dictionary.com/words.json",
 }
 
+# まずは英語と日本語に限定
 LANG_MAP = {
-    "ja": "ja-jp", "en": "en-us", "de": "de-de", "es": "es-es",
-    "fr": "fr-fr", "id": "id-id", "it": "it-it", "ko": "ko-kr",
-    "pt": "pt-pt", "ru": "ru-ru", "th": "th-th", "tr": "tr-tr",
-    "vi": "vi-vn", "zh-cn": "zh-cn", "zh-tw": "zh-tw",
+    "ja": "ja-jp", "en": "en-us",
+#    "de": "de-de", "es": "es-es",
+#    "fr": "fr-fr", "id": "id-id", "it": "it-it", "ko": "ko-kr",
+#    "pt": "pt-pt", "ru": "ru-ru", "th": "th-th", "tr": "tr-tr",
+#    "vi": "vi-vn", "zh-cn": "zh-cn", "zh-tw": "zh-tw",
 }
 
 GACHA_BANNER_TYPES = [
@@ -216,12 +219,15 @@ def to_uigf_gacha_type(gacha_type: str) -> str:
 
 def build_uigf_record(
     pull: dict, gacha_type: str, pmoe_id: str, item_name_en: str, 
-    item_name_jp: str, item_id: str, rank_type: Optional[str], rec_id: str
+    item_name_jp: str, item_id: str, rank_type: Optional[str], rec_id: str, lang: str = "en-us"
 ) -> Optional[dict]:
     """ガチャレコードを構築"""
     time_str = str(pull.get("time", ""))
     if not time_str or not parse_time(time_str):
         return None
+    
+    # 言語が ja-jp の場合は item_name_jp を優先
+    display_name = item_name_jp if lang == "ja-jp" else (item_name_en or item_name_jp)
     
     entry = {
         "uigf_gacha_type": to_uigf_gacha_type(gacha_type),
@@ -230,12 +236,16 @@ def build_uigf_record(
         "time": time_str,
         "id": rec_id,
         "count": "1",
-        "name": item_name_en or item_name_jp or str(pull.get("name", "")),
+        "name": display_name or str(pull.get("name", "")),
     }
     
     p_type = str(pull.get("type", "")).lower()
     if p_type in ("weapon", "character"):
-        entry["item_type"] = p_type.capitalize()
+        # 日本語ロケールでは日本語表記を使う
+        if str(lang).lower() == "ja-jp":
+            entry["item_type"] = "武器" if p_type == "weapon" else "キャラクター"
+        else:
+            entry["item_type"] = p_type.capitalize()
     
     if rank_type:
         entry["rank_type"] = rank_type
@@ -302,7 +312,7 @@ def paimon_to_uigf_v3(
             
             entry = build_uigf_record(
                 p, gacha_type, pmoe_id, item_name_en, item_name_jp,
-                item_id, rank_type, rec_id
+                item_id, rank_type, rec_id, lang
             )
             
             if entry:
