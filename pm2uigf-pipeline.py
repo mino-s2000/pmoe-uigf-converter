@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Paimon.moe ローカルデータ → UIGF v3 → UIGF v4.1 変換パイプライン
+Paimon.moe ローカルデータ → UIGF v3 → UIGF v4.2 変換パイプライン
 """
 
 import argparse
@@ -104,6 +104,15 @@ def build_pmoe_dict(api_results: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
                 entry["rarity"] = info["rarity"]
     return pmoe
 
+def build_uigf_dict(api_results: Dict[str, Any]) -> Dict[str, int]:
+    """UIGF 辞書（英語・日本語）を統合構築"""
+    merged = {}
+    for key in ("uigf_dict_en", "uigf_dict_ja", "uigf_dict"):
+        data = api_results.get(key, {})
+        if isinstance(data, dict):
+            merged.update(data)
+    return merged
+
 def build_genshin_words_maps(gd_data: dict) -> Dict[str, Dict[str, str]]:
     """Genshin Dictionary マップを構築"""
     maps = {"en_to_ja": {}, "en_to_ja_norm": {}, "zh_to_ja": {}}
@@ -141,7 +150,10 @@ def get_rank_from_pmoe_id(pmoe_id: str, pmoe_dict: dict) -> Optional[str]:
 
 def get_item_id_from_name(name: str, uigf_dict: dict) -> str:
     """名前から item_id を取得"""
-    return str(uigf_dict.get(name, 0))
+    if not name or not uigf_dict:
+        return "0"
+    val = uigf_dict.get(name)
+    return str(val) if val is not None else "0"
 
 def resolve_item_name(
     pmoe_id: str, raw_name: str, pmoe_dict: dict, 
@@ -255,7 +267,7 @@ def build_uigf_record(
 def paimon_to_uigf_v3(
     paimon_data: Dict[str, Any],
     export_app: str = "PMOE-Local-Converter",
-    export_app_version: str = "1.0.2",
+    export_app_version: str = "1.1.0",
     rank_override_map: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> Tuple[Dict[str, Any], Dict[str, Dict[str, str]]]:
     """Paimon → UIGF v3"""
@@ -265,7 +277,7 @@ def paimon_to_uigf_v3(
     # API並列取得
     api_results = fetch_apis_parallel()
     pmoe_dict = build_pmoe_dict(api_results)
-    uigf_dict = api_results.get("uigf_dict", {})
+    uigf_dict = build_uigf_dict(api_results)
     gd_maps = build_genshin_words_maps(api_results.get("genshin_words", []))
     
     # 基本情報
@@ -298,14 +310,20 @@ def paimon_to_uigf_v3(
                 pmoe_id, raw_name, pmoe_dict, gd_maps, locale
             )
             
-            item_id = get_item_id_from_name(item_name_en, uigf_dict)
-            if item_id == "0" and raw_name:
-                item_id = get_item_id_from_name(raw_name, uigf_dict)
-            
             rank_type = get_rank_from_pmoe_id(pmoe_id, pmoe_dict)
             item_name_en, item_name_jp, rank_type = apply_rank_override(
                 pmoe_id, item_name_en, item_name_jp, rank_type, rank_override_map
             )
+            
+            # item_id を解決（英語名 → 日本語名 → raw_name の順で検索）
+            item_id = get_item_id_from_name(item_name_en, uigf_dict)
+            if item_id == "0" and item_name_jp:
+                item_id = get_item_id_from_name(item_name_jp, uigf_dict)
+            if item_id == "0" and raw_name:
+                item_id = get_item_id_from_name(raw_name, uigf_dict)
+            if override_entry := rank_override_map.get(pmoe_id):
+                if o_id := override_entry.get("item_id"):
+                    item_id = str(o_id).strip()
             
             synth_id += 1
             rec_id = str(synth_id)
@@ -345,19 +363,22 @@ def paimon_to_uigf_v3(
 
 # ===== UIGF v3 → v4.x =====
 
-def uigf_v3_to_v41(uigf_v3: Dict[str, Any], version: str = "v4.1") -> Dict[str, Any]:
-    """UIGF v3 → v4.1"""
+def uigf_v3_to_v4x(uigf_v3: Dict[str, Any], target_version: str = "v4.2") -> Dict[str, Any]:
+    """UIGF v3 → v4.x (v4.2 または v4.1)"""
+    if target_version not in ("v4.2", "v4.1"):
+        raise ValueError(f"未対応の UIGF バージョンです: {target_version} (対応: v4.2, v4.1)")
+    
     info_v3 = uigf_v3.get("info", {})
     list_v3 = uigf_v3.get("list", [])
     
-    info_v41 = {
+    info_v4x = {
         "export_timestamp": info_v3.get("export_timestamp"),
         "export_app": info_v3.get("export_app"),
         "export_app_version": info_v3.get("export_app_version"),
-        "version": version,
+        "version": target_version,
     }
     
-    list_v41 = []
+    list_v4x = []
     for r in list_v3:
         gacha_type = str(r.get("gacha_type", ""))
         if not gacha_type or "time" not in r or "id" not in r:
@@ -376,27 +397,25 @@ def uigf_v3_to_v41(uigf_v3: Dict[str, Any], version: str = "v4.1") -> Dict[str, 
             if k in r and r[k] is not None:
                 entry[k] = str(r[k])
         
-        list_v41.append(entry)
+        list_v4x.append(entry)
     
-    list_v41.sort(key=lambda e: (e["time"], e["id"]))
+    list_v4x.sort(key=lambda e: (e["time"], e["id"]))
     
     return {
-        "info": info_v41,
+        "info": info_v4x,
         "hk4e": [
             {
                 "uid": info_v3.get("uid", "0"),
                 "timezone": info_v3.get("region_time_zone", 8),
                 "lang": info_v3.get("lang", "en-us"),
-                "list": list_v41,
+                "list": list_v4x,
             }
         ],
     }
 
-def uigf_v3_to_v4x(uigf_v3: Dict[str, Any], target_version: str = "v4.1") -> Dict[str, Any]:
-    """将来の拡張を想定した v3→v4.x 入口"""
-    if target_version.startswith("v4.1"):
-        return uigf_v3_to_v41(uigf_v3, version=target_version)
-    raise ValueError(f"未対応の UIGF バージョンです: {target_version}")
+def uigf_v3_to_v41(uigf_v3: Dict[str, Any], version: str = "v4.1") -> Dict[str, Any]:
+    """UIGF v3 → v4.1 (互換用関数)"""
+    return uigf_v3_to_v4x(uigf_v3, target_version=version)
 
 # ===== CLI & ファイルI/O =====
 
@@ -459,17 +478,22 @@ def output_missing_rank(missing_rank: Dict[str, Dict[str, str]], output_path: st
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Paimon.moe ローカルデータ → UIGF v3 → UIGF v4.1 変換"
+        description="Paimon.moe ローカルデータ → UIGF v3 → UIGF v4.2 変換"
     )
     
-    parser.add_argument("output_v41", help="出力 UIGF v4.x ファイルパス")
+    parser.add_argument("output_path", help="出力 UIGF v4.x ファイルパス")
     parser.add_argument("--paimon", help="Paimon.moe ローカルデータ JSON")
     parser.add_argument("--from-v3", help="既存の UIGF v3 JSON")
     parser.add_argument("--v3-out", help="生成した UIGF v3 JSON の出力先")
     parser.add_argument("--missing-rank-out", help="rank_type 未判別アイテム一覧の出力先")
     parser.add_argument("--export-app", default="PMOE-Local-Converter")
-    parser.add_argument("--export-app-version", default="1.0.0")
-    parser.add_argument("--target-version", default="v4.1")
+    parser.add_argument("--export-app-version", default="1.1.0")
+    parser.add_argument(
+        "--target-version",
+        default="v4.2",
+        choices=["v4.2", "v4.1"],
+        help="出力 UIGF バージョン (既定値: v4.2, 選択肢: v4.2, v4.1)",
+    )
     
     args = parser.parse_args()
     
@@ -478,6 +502,10 @@ def main():
         raise SystemExit("エラー: --paimon か --from-v3 のどちらか一方を指定してください")
     if args.paimon and args.from_v3:
         raise SystemExit("エラー: --paimon と --from-v3 は同時には指定できません")
+    
+    # target-version の確認・非推奨メッセージ
+    if args.target_version == "v4.1":
+        print("[確認] 警告: UIGF v4.1 への変換が指定されました。旧仕様のため推奨されません（最新の UIGF v4.2 の利用が推奨されます）。")
     
     # rank-override を読み込む
     rank_override_map = load_rank_override()
@@ -505,7 +533,7 @@ def main():
     
     # v3 → v4.x
     v4x = uigf_v3_to_v4x(uigf_v3, target_version=args.target_version)
-    save_json_file(args.output_v41, v4x, f"UIGF {args.target_version} JSON")
+    save_json_file(args.output_path, v4x, f"UIGF {args.target_version} JSON")
 
 if __name__ == "__main__":
     main()
